@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <!-- Background -->
+  <rect width="120" height="120" rx="28" fill="#581c87" />
+
+  <!-- Connections (Thinner lines, tracing "JS") -->
+  <g stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="60" y1="30" x2="90" y2="30" />
+    <line x1="60" y1="30" x2="60" y2="60" />
+    <line x1="30" y1="60" x2="30" y2="90" />
+    <line x1="60" y1="60" x2="60" y2="90" />
+    <line x1="60" y1="60" x2="90" y2="60" />
+    <line x1="90" y1="60" x2="90" y2="90" />
+    <line x1="30" y1="90" x2="90" y2="90" />
+  </g>
+
+  <!-- Nodes (Prominent) -->
+  <g fill="#ffffff">
+    <circle cx="60" cy="30" r="12" />
+    <circle cx="90" cy="30" r="12" />
+    <circle cx="30" cy="60" r="12" />
+    <circle cx="60" cy="60" r="12" />
+    <circle cx="90" cy="60" r="12" />
+    <circle cx="30" cy="90" r="12" />
+    <circle cx="60" cy="90" r="12" />
+    <circle cx="90" cy="90" r="12" />
+  </g>
+</svg>
