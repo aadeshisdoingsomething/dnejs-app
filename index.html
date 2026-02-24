@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Neural Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="bg-neutral-950 text-neutral-200 font-sans selection:bg-indigo-500/30">
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 h-screen p-4 md:p-8">
+
+        <!-- SIDEBAR -->
+        <div class="lg:col-span-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+
+            <!-- Stats & Controls -->
+            <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-xl shrink-0">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="brain" class="text-indigo-500 w-6 h-6"></i>
+                        <h1 class="font-black text-xl tracking-tight italic">NEURAL ENGINE</h1>
+                    </div>
+                    <button id="btn-visualizer"
+                        class="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-xl transition-colors text-indigo-400"
+                        title="View Network Matrices">
+                        <i data-lucide="network" class="w-[18px] h-[18px]"></i>
+                    </button>
+                </div>
+
+                <div id="cloud-status"
+                    class="text-[10px] text-amber-500 flex items-center gap-1 font-bold uppercase tracking-widest">
+                    <i data-lucide="cloud-off" class="w-3 h-3"></i> Connecting...
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-black/40 p-3 rounded-2xl border border-neutral-800">
+                        <p class="text-[10px] text-neutral-500 uppercase font-bold mb-1">Loss Rate</p>
+                        <p id="ui-loss" class="text-xl font-mono text-indigo-400">1.00000</p>
+                    </div>
+                    <div class="bg-black/40 p-3 rounded-2xl border border-neutral-800">
+                        <p class="text-[10px] text-neutral-500 uppercase font-bold mb-1">Target Loss</p>
+                        <input id="ui-target-loss" type="number" step="0.001" value="0.005"
+                            class="w-full bg-transparent text-xl font-mono text-neutral-200 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-2">
+                    <button id="btn-nuke-data"
+                        class="w-full py-3 rounded-xl font-bold tracking-widest text-xs flex items-center justify-center gap-2 transition-all bg-rose-950/40 text-rose-500 border border-rose-900/50 hover:bg-rose-900/40 hover:text-rose-400">
+                        <i data-lucide="bomb" class="w-[14px] h-[14px]"></i> NUKE CORE
+                    </button>
+                </div>
+
+                <button id="btn-train"
+                    class="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all bg-indigo-600 text-white hover:bg-indigo-500">
+                    <i data-lucide="play" class="w-[18px] h-[18px]" id="train-icon"></i>
+                    <span id="train-text">TRAIN UNTIL TARGET</span>
+                </button>
+            </div>
+
+            <!-- Inject / Import -->
+            <div
+                class="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl flex-1 flex flex-col shadow-xl min-h-0">
+                <div class="flex gap-2 mb-4">
+                    <button id="tab-manual"
+                        class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors bg-indigo-600/20 text-indigo-400">Manual</button>
+                    <button id="tab-json"
+                        class="flex-1 py-2 rounded-lg text-xs font-bold transition-colors bg-neutral-800 text-neutral-500 hover:text-neutral-300">JSON
+                        Import</button>
+                </div>
+
+                <!-- Manual Tab -->
+                <div id="view-manual" class="space-y-4 flex-1 flex flex-col min-h-0">
+                    <div class="space-y-2 shrink-0">
+                        <input id="teach-q" placeholder="User says..."
+                            class="w-full bg-black/50 border border-neutral-800 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none">
+                        <input id="teach-a" placeholder="AI should respond..."
+                            class="w-full bg-black/50 border border-neutral-800 rounded-xl p-3 text-sm focus:border-indigo-500 outline-none">
+                        <button id="btn-teach"
+                            class="w-full bg-neutral-800 hover:bg-neutral-700 py-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="plus-circle" class="w-[14px] h-[14px]"></i> ATTACH TO MEMORY
+                        </button>
+                    </div>
+
+                    <div class="pt-4 mt-4 border-t border-neutral-800 flex-1 flex flex-col min-h-0">
+                        <div class="flex justify-between items-center mb-3 shrink-0">
+                            <p id="corpus-stats" class="text-[10px] text-neutral-500 font-bold uppercase">Corpus (0) /
+                                Vocab (0)</p>
+                            <i data-lucide="book" class="w-3 h-3 text-neutral-700"></i>
+                        </div>
+                        <div id="corpus-list" class="space-y-1 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JSON Tab -->
+                <div id="view-json" class="space-y-3 flex-1 flex flex-col min-h-0 hidden">
+                    <div class="shrink-0 flex justify-between items-center">
+                        <p class="text-[10px] text-neutral-400">Requires array of <code
+                                class="text-indigo-400">{q, a}</code> pairs.</p>
+                        <button id="btn-paste-example"
+                            class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold">Paste Example</button>
+                    </div>
+                    <textarea id="json-input"
+                        placeholder="[\n  { &quot;q&quot;: &quot;input&quot;, &quot;a&quot;: &quot;output&quot; }\n]"
+                        class="w-full flex-1 bg-black/50 border border-neutral-800 rounded-xl p-3 text-xs font-mono focus:border-indigo-500 outline-none resize-none custom-scrollbar"></textarea>
+                    <p id="json-error" class="text-xs text-rose-500 font-bold hidden"></p>
+                    <button id="btn-import-json"
+                        class="w-full shrink-0 bg-neutral-800 hover:bg-neutral-700 py-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="code" class="w-[14px] h-[14px]"></i> IMPORT CORPUS
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CHAT -->
+        <div
+            class="lg:col-span-8 flex flex-col bg-neutral-900 border border-neutral-800 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+            <div
+                class="p-6 border-b border-neutral-800 flex justify-between items-center bg-neutral-900/50 backdrop-blur-md shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                    <span class="text-xs font-bold uppercase tracking-widest text-neutral-400">Live Inference
+                        Module</span>
+                </div>
+                <button id="btn-clear-chat" class="text-neutral-600 hover:text-rose-500 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar flex flex-col">
+                <!-- Messages appended here via JS -->
+            </div>
+
+            <form id="chat-form" class="p-6 bg-neutral-900 border-t border-neutral-800 shrink-0">
+                <div class="relative flex items-center">
+                    <input id="chat-input" type="text" placeholder="Query the math..." autocomplete="off"
+                        class="w-full bg-black border border-neutral-800 rounded-2xl pl-6 pr-16 py-5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
+                    <button type="submit"
+                        class="absolute right-3 p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-600/20">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p class="text-[9px] text-center text-neutral-600 mt-4 uppercase tracking-[0.2em]">
+                    Reinforcement Learning Enabled • Pure JS Inference
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- VISUALIZER OVERLAY -->
+    <div id="visualizer-overlay"
+        class="hidden fixed inset-0 bg-neutral-950/95 backdrop-blur-sm z-50 flex flex-col p-6 animate-in fade-in duration-200">
+        <div class="flex justify-between items-center mb-6 shrink-0 max-w-7xl mx-auto w-full">
+            <div>
+                <h2 class="text-2xl font-black italic tracking-tight text-white flex items-center gap-3">
+                    <i data-lucide="network" class="text-indigo-500"></i> MATRIX VISUALIZER
+                </h2>
+                <p class="text-neutral-500 text-sm mt-1">Live projection of synaptic weights.</p>
+            </div>
+            <button id="btn-close-vis"
+                class="p-3 bg-neutral-900 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-500 rounded-xl transition-all">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <div id="vis-content"
+            class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-8 pb-10 max-w-7xl mx-auto w-full">
+            <!-- Generated via JS -->
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
