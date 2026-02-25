@@ -13,7 +13,7 @@ export const state = {
     messages: [],
     isTraining: false,
     trainingTimeout: null,
-    currentLoss: 1.0,
+    currentLoss: 50,
     iterations: 0
 };
 
