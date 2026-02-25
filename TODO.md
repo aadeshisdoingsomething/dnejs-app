@@ -2,7 +2,7 @@
 
 This document outlines specific, actionable steps to improve the efficiency, speed, and "intelligence" of the current neural network architecture without relying on external libraries.
 
-## 1. Optimize the Training Loop (Immediate Efficiency Gain)
+## 1. [x] Optimize the Training Loop (Immediate Efficiency Gain)
 **Current Issue:** In `js/training.js`, the `trainBatch` function re-encodes the *entire* corpus every single time it runs (which is every frame due to `setTimeout`).
 ```javascript
 // This runs on every iteration and is very expensive!
@@ -27,7 +27,7 @@ const pairs = state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
 - **Output:** Change the model to predict the *next word* rather than the whole sentence at once. 
 - **Inference:** Instead of a single pass, feed the input to get the first word, then append that word to the input and feed it again to get the second word, stopping when an `<EOS>` (End of Sentence) token is predicted.
 
-## 4. Upgrade Activations & Loss Functions
+## 4. [x] Upgrade Activations & Loss Functions
 **Current Issue:** The network uses Sigmoid activations everywhere and calculates loss by simply subtracting vectors (`target - output`).
 **Action:**
 - **Hidden Layer:** Replace `sigmoid` with `ReLU` (`Math.max(0, x)`) in `js/model.js`. It's computationally cheaper (no `Math.exp`) and prevents the vanishing gradient problem, allowing for faster convergence.
@@ -40,7 +40,7 @@ const pairs = state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
 - Move `model.js` and `training.js` execution into a standard JavaScript Web Worker. 
 - The main thread should only handle DOM updates and pass messages (like new corpus data or "start training" commands) to the worker. The worker will send back the current loss and iteration count.
 
-## 6. Flatten Matrices to Typed Arrays (Performance)
+## 6. [x] Flatten Matrices to Typed Arrays (Performance)
 **Current Issue:** Weights and biases are stored as Arrays of Arrays (e.g., `Array.from({ length: hiddenNodes }, () => ...)`). V8 engine struggles to optimize nested dynamic arrays.
 **Action:**
 - Refactor `weightsIH`, `weightsHO`, etc., to use flat 1D `Float32Array` objects. 

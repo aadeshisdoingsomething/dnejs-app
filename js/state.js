@@ -8,6 +8,7 @@ export const state = {
     corpus: [
         { q: "hi", a: "hello" },
     ],
+    encodedCorpus: [],
     brain: null,
     messages: [],
     isTraining: false,

@@ -8,60 +8,108 @@ export class AdvancedBrain {
     }
 
     initWeights() {
-        const limitIH = Math.sqrt(6 / (this.vocabSize + this.hiddenNodes));
-        const limitHO = Math.sqrt(6 / (this.hiddenNodes + this.vocabSize));
+        const limitIH = Math.sqrt(2 / this.vocabSize); // He variance for ReLU
+        const limitHO = Math.sqrt(1 / this.hiddenNodes); // Xavier for Sigmoid
 
-        this.weightsIH = Array.from({ length: this.hiddenNodes }, () => Array.from({ length: this.vocabSize }, () => (Math.random() * 2 - 1) * limitIH));
-        this.weightsHO = Array.from({ length: this.vocabSize }, () => Array.from({ length: this.hiddenNodes }, () => (Math.random() * 2 - 1) * limitHO));
-        this.biasH = new Array(this.hiddenNodes).fill(0);
-        this.biasO = new Array(this.vocabSize).fill(0);
+        const lenIH = this.hiddenNodes * this.vocabSize;
+        const lenHO = this.vocabSize * this.hiddenNodes;
 
-        this.vWeightsIH = Array.from({ length: this.hiddenNodes }, () => new Array(this.vocabSize).fill(0));
-        this.vWeightsHO = Array.from({ length: this.vocabSize }, () => new Array(this.hiddenNodes).fill(0));
-        this.vBiasH = new Array(this.hiddenNodes).fill(0);
-        this.vBiasO = new Array(this.vocabSize).fill(0);
+        this.weightsIH = new Float32Array(lenIH);
+        this.weightsHO = new Float32Array(lenHO);
+        this.biasH = new Float32Array(this.hiddenNodes);
+        this.biasO = new Float32Array(this.vocabSize);
+
+        this.vWeightsIH = new Float32Array(lenIH);
+        this.vWeightsHO = new Float32Array(lenHO);
+        this.vBiasH = new Float32Array(this.hiddenNodes);
+        this.vBiasO = new Float32Array(this.vocabSize);
+
+        for (let i = 0; i < lenIH; i++) {
+            this.weightsIH[i] = (Math.random() * 2 - 1) * limitIH;
+        }
+        for (let i = 0; i < lenHO; i++) {
+            this.weightsHO[i] = (Math.random() * 2 - 1) * limitHO;
+        }
     }
 
     expandVocab(newSize) {
         const diff = newSize - this.vocabSize;
         if (diff <= 0) return;
 
-        const limitIH = Math.sqrt(6 / (newSize + this.hiddenNodes));
-        const limitHO = Math.sqrt(6 / (this.hiddenNodes + newSize));
+        const limitIH = Math.sqrt(2 / newSize);
+        const limitHO = Math.sqrt(1 / this.hiddenNodes);
 
-        this.weightsIH = this.weightsIH.map(row => [...row, ...Array.from({ length: diff }, () => (Math.random() * 2 - 1) * limitIH)]);
-        const newRowsHO = Array.from({ length: diff }, () => Array.from({ length: this.hiddenNodes }, () => (Math.random() * 2 - 1) * limitHO));
-        this.weightsHO = [...this.weightsHO, ...newRowsHO];
+        const newLenIH = this.hiddenNodes * newSize;
+        const newLenHO = newSize * this.hiddenNodes;
 
-        this.biasO = [...this.biasO, ...new Array(diff).fill(0)];
+        const newWeightsIH = new Float32Array(newLenIH);
+        const newWeightsHO = new Float32Array(newLenHO);
+        const newBiasO = new Float32Array(newSize);
 
-        this.vWeightsIH = this.vWeightsIH.map(row => [...row, ...new Array(diff).fill(0)]);
-        const newVRowsHO = Array.from({ length: diff }, () => new Array(this.hiddenNodes).fill(0));
-        this.vWeightsHO = [...this.vWeightsHO, ...newVRowsHO];
-        this.vBiasO = [...this.vBiasO, ...new Array(diff).fill(0)];
+        const newVWeightsIH = new Float32Array(newLenIH);
+        const newVWeightsHO = new Float32Array(newLenHO);
+        const newVBiasO = new Float32Array(newSize);
+
+        // Copy old data and initialize new values
+        for (let i = 0; i < this.hiddenNodes; i++) {
+            for (let j = 0; j < this.vocabSize; j++) {
+                newWeightsIH[i * newSize + j] = this.weightsIH[i * this.vocabSize + j];
+                newVWeightsIH[i * newSize + j] = this.vWeightsIH[i * this.vocabSize + j];
+            }
+            for (let j = this.vocabSize; j < newSize; j++) {
+                newWeightsIH[i * newSize + j] = (Math.random() * 2 - 1) * limitIH;
+            }
+        }
+
+        for (let i = 0; i < this.vocabSize; i++) {
+            for (let j = 0; j < this.hiddenNodes; j++) {
+                newWeightsHO[i * this.hiddenNodes + j] = this.weightsHO[i * this.hiddenNodes + j];
+                newVWeightsHO[i * this.hiddenNodes + j] = this.vWeightsHO[i * this.hiddenNodes + j];
+            }
+        }
+        for (let i = this.vocabSize; i < newSize; i++) {
+            for (let j = 0; j < this.hiddenNodes; j++) {
+                newWeightsHO[i * this.hiddenNodes + j] = (Math.random() * 2 - 1) * limitHO;
+            }
+        }
+
+        newBiasO.set(this.biasO);
+        newVBiasO.set(this.vBiasO);
+
+        this.weightsIH = newWeightsIH;
+        this.weightsHO = newWeightsHO;
+        this.biasO = newBiasO;
+
+        this.vWeightsIH = newVWeightsIH;
+        this.vWeightsHO = newVWeightsHO;
+        this.vBiasO = newVBiasO;
 
         this.vocabSize = newSize;
     }
 
     sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
     dsigmoid(y) { return y * (1 - y); }
+    relu(x) { return x > 0 ? x : 0.01 * x; }
+    drelu(y) { return y > 0 ? 1 : 0.01; }
 
     predict(inputVector) {
-        let hidden = this.biasH.map((b, i) => {
-            let sum = b;
+        let hidden = new Array(this.hiddenNodes);
+        for (let i = 0; i < this.hiddenNodes; i++) {
+            let sum = this.biasH[i];
             for (let j = 0; j < this.vocabSize; j++) {
-                sum += (this.weightsIH[i][j] || 0) * (inputVector[j] || 0);
+                sum += this.weightsIH[i * this.vocabSize + j] * (inputVector[j] || 0);
             }
-            return this.sigmoid(sum);
-        });
+            hidden[i] = this.relu(sum);
+        }
 
-        let output = this.biasO.map((b, i) => {
-            let sum = b;
+        let output = new Array(this.vocabSize);
+        for (let i = 0; i < this.vocabSize; i++) {
+            let sum = this.biasO[i];
             for (let j = 0; j < this.hiddenNodes; j++) {
-                sum += (this.weightsHO[i][j] || 0) * hidden[j];
+                sum += this.weightsHO[i * this.hiddenNodes + j] * hidden[j];
             }
-            return this.sigmoid(sum);
-        });
+            output[i] = this.sigmoid(sum);
+        }
 
         return { output, hidden };
     }
@@ -74,47 +122,55 @@ export class AdvancedBrain {
         const hiddenErrors = new Array(this.hiddenNodes).fill(0);
         for (let i = 0; i < this.vocabSize; i++) {
             for (let j = 0; j < this.hiddenNodes; j++) {
-                hiddenErrors[j] += outputErrors[i] * this.weightsHO[i][j];
+                hiddenErrors[j] += outputErrors[i] * this.weightsHO[i * this.hiddenNodes + j];
             }
         }
 
         for (let i = 0; i < this.vocabSize; i++) {
-            let gradient = outputErrors[i] * this.dsigmoid(output[i]) * lr;
+            let gradient = outputErrors[i] * lr; // BCE + Sigmoid simplification
             for (let j = 0; j < this.hiddenNodes; j++) {
                 let delta = gradient * hidden[j];
-                this.vWeightsHO[i][j] = this.momentum * this.vWeightsHO[i][j] + delta;
-                this.weightsHO[i][j] += this.vWeightsHO[i][j];
+                let hoIdx = i * this.hiddenNodes + j;
+                this.vWeightsHO[hoIdx] = this.momentum * this.vWeightsHO[hoIdx] + delta;
+                this.weightsHO[hoIdx] += this.vWeightsHO[hoIdx];
             }
             this.vBiasO[i] = this.momentum * this.vBiasO[i] + gradient;
             this.biasO[i] += this.vBiasO[i];
         }
 
         for (let i = 0; i < this.hiddenNodes; i++) {
-            let gradient = hiddenErrors[i] * this.dsigmoid(hidden[i]) * lr;
+            let gradient = hiddenErrors[i] * this.drelu(hidden[i]) * lr;
             for (let j = 0; j < this.vocabSize; j++) {
                 let delta = gradient * (inputVector[j] || 0);
-                this.vWeightsIH[i][j] = this.momentum * this.vWeightsIH[i][j] + delta;
-                this.weightsIH[i][j] += this.vWeightsIH[i][j];
+                let ihIdx = i * this.vocabSize + j;
+                this.vWeightsIH[ihIdx] = this.momentum * this.vWeightsIH[ihIdx] + delta;
+                this.weightsIH[ihIdx] += this.vWeightsIH[ihIdx];
             }
             this.vBiasH[i] = this.momentum * this.vBiasH[i] + gradient;
             this.biasH[i] += this.vBiasH[i];
         }
 
-        return outputErrors.reduce((sum, err) => sum + Math.abs(err), 0);
+        let ceLoss = 0;
+        for (let i = 0; i < this.vocabSize; i++) {
+            const t = targetVector[i];
+            const o = Math.max(1e-15, Math.min(1 - 1e-15, output[i]));
+            ceLoss -= (t * Math.log(o) + (1 - t) * Math.log(1 - o));
+        }
+        return ceLoss; // Return sum instead of mean to scale consistently with UI target
     }
 
     serialize() {
         return JSON.stringify({
             vocabSize: this.vocabSize,
             hiddenNodes: this.hiddenNodes,
-            weightsIH: this.weightsIH,
-            weightsHO: this.weightsHO,
-            biasH: this.biasH,
-            biasO: this.biasO,
-            vWeightsIH: this.vWeightsIH,
-            vWeightsHO: this.vWeightsHO,
-            vBiasH: this.vBiasH,
-            vBiasO: this.vBiasO
+            weightsIH: Array.from(this.weightsIH),
+            weightsHO: Array.from(this.weightsHO),
+            biasH: Array.from(this.biasH),
+            biasO: Array.from(this.biasO),
+            vWeightsIH: Array.from(this.vWeightsIH),
+            vWeightsHO: Array.from(this.vWeightsHO),
+            vBiasH: Array.from(this.vBiasH),
+            vBiasO: Array.from(this.vBiasO)
         });
     }
 
@@ -122,13 +178,13 @@ export class AdvancedBrain {
         const data = JSON.parse(dataStr);
         this.vocabSize = data.vocabSize;
         this.hiddenNodes = data.hiddenNodes;
-        this.weightsIH = data.weightsIH;
-        this.weightsHO = data.weightsHO;
-        this.biasH = data.biasH;
-        this.biasO = data.biasO;
-        this.vWeightsIH = data.vWeightsIH || this.vWeightsIH;
-        this.vWeightsHO = data.vWeightsHO || this.vWeightsHO;
-        this.vBiasH = data.vBiasH || this.vBiasH;
-        this.vBiasO = data.vBiasO || this.vBiasO;
+        this.weightsIH = new Float32Array(data.weightsIH);
+        this.weightsHO = new Float32Array(data.weightsHO);
+        this.biasH = new Float32Array(data.biasH);
+        this.biasO = new Float32Array(data.biasO);
+        this.vWeightsIH = new Float32Array(data.vWeightsIH || new Array(this.hiddenNodes * this.vocabSize).fill(0));
+        this.vWeightsHO = new Float32Array(data.vWeightsHO || new Array(this.vocabSize * this.hiddenNodes).fill(0));
+        this.vBiasH = new Float32Array(data.vBiasH || new Array(this.hiddenNodes).fill(0));
+        this.vBiasO = new Float32Array(data.vBiasO || new Array(this.vocabSize).fill(0));
     }
 }

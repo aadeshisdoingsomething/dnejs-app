@@ -8,7 +8,9 @@ export function trainBatch() {
 
     const target = parseFloat(DOM.uiTargetLoss.value) || 0;
     let totalError = 0;
-    const pairs = state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
+    const pairs = state.encodedCorpus && state.encodedCorpus.length > 0
+        ? state.encodedCorpus
+        : state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
 
     // Batch size 100
     for (let k = 0; k < 100; k++) {

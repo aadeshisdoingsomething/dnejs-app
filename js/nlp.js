@@ -13,6 +13,10 @@ export function encode(text) {
     return vec;
 }
 
+export function updateEncodedCorpus() {
+    state.encodedCorpus = state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
+}
+
 export function decode(vector) {
     // Lower threshold to see more words
     const threshold = 0.15;

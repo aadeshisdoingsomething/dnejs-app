@@ -2,11 +2,12 @@ import { state } from './state.js';
 import { loadData, saveData } from './storage.js';
 import { DOM, renderCorpus, appendMessage, updateVisualizer } from './ui.js';
 import { toggleTraining } from './training.js';
-import { encode, decode, tokenize } from './nlp.js';
+import { encode, decode, tokenize, updateEncodedCorpus } from './nlp.js';
 
 window.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) window.lucide.createIcons();
     loadData();
+    updateEncodedCorpus();
 
     window.handleFeedback = function (index, positive) {
         const q = state.messages[index - 1].text;
@@ -64,6 +65,7 @@ window.addEventListener('DOMContentLoaded', () => {
             state.brain.expandVocab(state.vocab.length);
         }
         state.corpus.push({ q, a });
+        updateEncodedCorpus();
         renderCorpus();
         saveData();
 
@@ -96,6 +98,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 state.brain.expandVocab(state.vocab.length);
             }
             state.corpus.push(...validPairs);
+            updateEncodedCorpus();
             renderCorpus();
             saveData();
 
