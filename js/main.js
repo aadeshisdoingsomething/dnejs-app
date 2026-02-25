@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { loadData, saveData } from './storage.js';
 import { DOM, renderCorpus, appendMessage, updateVisualizer } from './ui.js';
 import { toggleTraining } from './training.js';
-import { encode, decode, tokenize, updateEncodedCorpus } from './nlp.js';
+import { encodeSequence, decode, tokenize, updateEncodedCorpus } from './nlp.js';
 
 window.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) window.lucide.createIcons();
@@ -10,14 +10,9 @@ window.addEventListener('DOMContentLoaded', () => {
     updateEncodedCorpus();
 
     window.handleFeedback = function (index, positive) {
-        const q = state.messages[index - 1].text;
-        const a = state.messages[index].text;
-        if (positive) {
-            for (let i = 0; i < 50; i++) state.brain.train(encode(q), encode(a), 0.5);
-        } else {
-            for (let i = 0; i < 50; i++) state.brain.train(encode(q), new Array(state.vocab.length).fill(0), 0.5);
-        }
-        saveData();
+        // Feedback mechanism temporarily disabled during sequence migration
+        // Will need to be rewritten to support sequential reinforcement in the future
+        console.warn("Feedback training currently disabled for Auto-Regressive model.");
     };
 
     DOM.chatForm.addEventListener('submit', (e) => {
@@ -28,11 +23,26 @@ window.addEventListener('DOMContentLoaded', () => {
         state.messages.push({ role: 'user', text });
         appendMessage('user', text, state.messages.length - 1);
 
-        const result = state.brain.predict(encode(text));
-        const response = decode(result.output);
+        // Auto-Regressive Inference Loop
+        let currentContext = tokenize(text);
+        let generatedWords = [];
+        let maxTokens = 20; // Hard limit to prevent infinite loops on untrained models
 
-        state.messages.push({ role: 'ai', text: response });
-        appendMessage('ai', response, state.messages.length - 1);
+        for (let i = 0; i < maxTokens; i++) {
+            const vec = encodeSequence(currentContext);
+            const pred = state.brain.predict(vec);
+            const word = decode(pred.output);
+
+            if (word === "<EOS>") break;
+
+            generatedWords.push(word);
+            currentContext.push(word); // Feed prediction back into sequence
+        }
+
+        const responseMsg = generatedWords.length > 0 ? generatedWords.join(" ") : "...";
+
+        state.messages.push({ role: 'ai', text: responseMsg });
+        appendMessage('ai', responseMsg, state.messages.length - 1);
 
         DOM.chatInput.value = '';
     });

@@ -103,12 +103,30 @@ export class AdvancedBrain {
         }
 
         let output = new Array(this.vocabSize);
+        let maxSum = -Infinity;
+        let sums = new Array(this.vocabSize);
+
+        // Calculate sums and find max for numerical stability
         for (let i = 0; i < this.vocabSize; i++) {
             let sum = this.biasO[i];
             for (let j = 0; j < this.hiddenNodes; j++) {
                 sum += this.weightsHO[i * this.hiddenNodes + j] * hidden[j];
             }
-            output[i] = this.sigmoid(sum);
+            sums[i] = sum;
+            if (sum > maxSum) maxSum = sum;
+        }
+
+        // Apply Softmax: exp(val) / sum(exp(val))
+        let totalExp = 0;
+        for (let i = 0; i < this.vocabSize; i++) {
+            // Clamp exponent to avoid NaN Infinity
+            let exponent = Math.min(Math.max(sums[i] - maxSum, -50), 50);
+            let e = Math.exp(exponent);
+            output[i] = e;
+            totalExp += e;
+        }
+        for (let i = 0; i < this.vocabSize; i++) {
+            output[i] /= totalExp;
         }
 
         return { output, hidden };
@@ -126,8 +144,14 @@ export class AdvancedBrain {
             }
         }
 
+        // Gradient Clipping Threshold
+        const clip = 5.0;
+
         for (let i = 0; i < this.vocabSize; i++) {
-            let gradient = outputErrors[i] * lr; // BCE + Sigmoid simplification
+            let gradient = outputErrors[i] * lr; // Softmax + CrossEntropy derivative IS exactly (Target - Output)
+            // Clip Error Gradient
+            gradient = Math.max(-clip, Math.min(clip, gradient));
+
             for (let j = 0; j < this.hiddenNodes; j++) {
                 let delta = gradient * hidden[j];
                 let hoIdx = i * this.hiddenNodes + j;
@@ -140,6 +164,9 @@ export class AdvancedBrain {
 
         for (let i = 0; i < this.hiddenNodes; i++) {
             let gradient = hiddenErrors[i] * this.drelu(hidden[i]) * lr;
+            // Clip Hidden Gradient
+            gradient = Math.max(-clip, Math.min(clip, gradient));
+
             for (let j = 0; j < this.vocabSize; j++) {
                 let delta = gradient * (inputVector[j] || 0);
                 let ihIdx = i * this.vocabSize + j;

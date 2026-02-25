@@ -2,7 +2,7 @@ import { AdvancedBrain } from './model.js';
 
 export const state = {
     vocab: [
-        "hi", "hello", "i", "am", "robot", "ai", "bot",
+        "<PAD>", "<EOS>", "hi", "hello", "i", "am", "robot", "ai", "bot",
         "good", "bad", "yes", "no", "what", "is", "your", "name",
     ],
     corpus: [

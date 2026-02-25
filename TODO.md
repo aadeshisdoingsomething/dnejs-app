@@ -20,7 +20,7 @@ const pairs = state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
 - Create an `applyGradients()` method.
 - In `trainBatch`, loop 100 times calling `accumulateGradients`, and then call `applyGradients` once at the end of the batch. This will vectorize better and provide a more stable learning path.
 
-## 3. Move from Bag-of-Words to Auto-Regressive Generation (Make it Smarter)
+## 3. [x] Move from Bag-of-Words to Auto-Regressive Generation (Make it Smarter)
 **Current Issue:** `js/nlp.js` uses a Bag-of-Words (BoW) encoding. It loses all word order. "The dog bit the man" and "The man bit the dog" have the exact same input vector. Furthermore, `decode()` just outputs the top 3 words based on their index in the vocabulary, meaning the output grammar will always be broken.
 **Action:**
 - **Input:** Implement N-grams (e.g., pairs of words) or positional encoding so the input vector retains sequential context.
