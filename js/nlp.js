@@ -10,10 +10,16 @@ export function encode(text) {
 
 export function encodeSequence(wordsArray) {
     const vec = new Array(state.vocab.length).fill(0);
-    // Continuous Bag Of Words implementation (Sums the input context together)
-    wordsArray.forEach(w => {
+    const maxLen = Math.max(wordsArray.length, 1);
+
+    // Temporal Fraction Positional Encoding
+    wordsArray.forEach((w, i) => {
         const idx = state.vocab.indexOf(w);
-        if (idx !== -1) vec[idx] += 1; // Used additive logic over fixed `1` to represent frequency
+        if (idx !== -1) {
+            // Base context is 1.0. Position adds a temporal fraction (e.g., 0.0 to 1.0)
+            const temporalFraction = i / maxLen;
+            vec[idx] += (1.0 + temporalFraction);
+        }
     });
     return vec;
 }

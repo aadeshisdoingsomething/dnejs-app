@@ -46,7 +46,7 @@ const pairs = state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
 - Refactor `weightsIH`, `weightsHO`, etc., to use flat 1D `Float32Array` objects. 
 - Address them using math: `index = row * width + col`. Typed arrays provide a massive speed boost in JavaScript for heavy numerical computation.
 
-7. Implement Simple Positional Encoding
+## 7. [x] Implement Simple Positional Encoding
 Current Issue: The model receives a sequence of tokens, but the weights for a specific word (e.g., "is") are the same whether it appears at the start, middle, or end of a sentence. This makes it hard for the model to learn that "What" usually starts a sentence and "<EOS>" ends one.
 Action:
 
