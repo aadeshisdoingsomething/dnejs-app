@@ -28,7 +28,10 @@ export const DOM = {
   get btnVisualizer() { return document.getElementById('btn-visualizer'); },
   get btnCloseVis() { return document.getElementById('btn-close-vis'); },
   get btnClearChat() { return document.getElementById('btn-clear-chat'); },
-  get btnNukeData() { return document.getElementById('btn-nuke-data'); }
+  get btnNukeData() { return document.getElementById('btn-nuke-data'); },
+  get nukeOverlay() { return document.getElementById('nuke-overlay'); },
+  get btnNukeCancel() { return document.getElementById('btn-nuke-cancel'); },
+  get btnNukeConfirm() { return document.getElementById('btn-nuke-confirm'); }
 };
 
 export function renderCorpus() {

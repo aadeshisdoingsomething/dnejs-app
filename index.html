@@ -228,6 +228,33 @@
         </div>
     </div>
 
+    <!-- NUKE CORE OVERLAY -->
+    <div id="nuke-overlay"
+        class="hidden fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div
+            class="bg-card border border-destructive/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl flex flex-col gap-4 text-center">
+            <div
+                class="mx-auto w-12 h-12 bg-destructive/20 text-destructive rounded-full flex items-center justify-center mb-2">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-xl font-black italic tracking-tight text-white">SYSTEM PURGE</h3>
+            <p class="text-sm text-muted-foreground leading-relaxed">
+                Are you sure you want to NUKE the core data? This will clear all training, words, and matrices.
+                <br><br><strong class="text-destructive">This action cannot be undone.</strong>
+            </p>
+            <div class="flex gap-3 mt-4">
+                <button id="btn-nuke-cancel"
+                    class="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground font-bold rounded-xl transition-colors text-xs">
+                    CANCEL
+                </button>
+                <button id="btn-nuke-confirm"
+                    class="flex-1 py-3 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold rounded-xl transition-colors text-xs flex items-center justify-center gap-2">
+                    <i data-lucide="flame" class="w-4 h-4"></i> PURGE
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- App Logic -->
     <script type="module" src="js/main.js"></script>
 </body>

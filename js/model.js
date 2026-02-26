@@ -24,6 +24,11 @@ export class AdvancedBrain {
         this.vBiasH = new Float32Array(this.hiddenNodes);
         this.vBiasO = new Float32Array(this.vocabSize);
 
+        this.gradWeightsIH = new Float32Array(lenIH);
+        this.gradWeightsHO = new Float32Array(lenHO);
+        this.gradBiasH = new Float32Array(this.hiddenNodes);
+        this.gradBiasO = new Float32Array(this.vocabSize);
+
         for (let i = 0; i < lenIH; i++) {
             this.weightsIH[i] = (Math.random() * 2 - 1) * limitIH;
         }
@@ -50,11 +55,15 @@ export class AdvancedBrain {
         const newVWeightsHO = new Float32Array(newLenHO);
         const newVBiasO = new Float32Array(newSize);
 
+        const newGradWeightsIH = new Float32Array(newLenIH);
+        const newGradWeightsHO = new Float32Array(newLenHO);
+        const newGradBiasO = new Float32Array(newSize);
         // Copy old data and initialize new values
         for (let i = 0; i < this.hiddenNodes; i++) {
             for (let j = 0; j < this.vocabSize; j++) {
                 newWeightsIH[i * newSize + j] = this.weightsIH[i * this.vocabSize + j];
                 newVWeightsIH[i * newSize + j] = this.vWeightsIH[i * this.vocabSize + j];
+                newGradWeightsIH[i * newSize + j] = this.gradWeightsIH[i * this.vocabSize + j];
             }
             for (let j = this.vocabSize; j < newSize; j++) {
                 newWeightsIH[i * newSize + j] = (Math.random() * 2 - 1) * limitIH;
@@ -65,6 +74,7 @@ export class AdvancedBrain {
             for (let j = 0; j < this.hiddenNodes; j++) {
                 newWeightsHO[i * this.hiddenNodes + j] = this.weightsHO[i * this.hiddenNodes + j];
                 newVWeightsHO[i * this.hiddenNodes + j] = this.vWeightsHO[i * this.hiddenNodes + j];
+                newGradWeightsHO[i * this.hiddenNodes + j] = this.gradWeightsHO[i * this.hiddenNodes + j];
             }
         }
         for (let i = this.vocabSize; i < newSize; i++) {
@@ -75,6 +85,7 @@ export class AdvancedBrain {
 
         newBiasO.set(this.biasO);
         newVBiasO.set(this.vBiasO);
+        newGradBiasO.set(this.gradBiasO);
 
         this.weightsIH = newWeightsIH;
         this.weightsHO = newWeightsHO;
@@ -83,6 +94,10 @@ export class AdvancedBrain {
         this.vWeightsIH = newVWeightsIH;
         this.vWeightsHO = newVWeightsHO;
         this.vBiasO = newVBiasO;
+
+        this.gradWeightsIH = newGradWeightsIH;
+        this.gradWeightsHO = newGradWeightsHO;
+        this.gradBiasO = newGradBiasO;
 
         this.vocabSize = newSize;
     }
@@ -132,8 +147,14 @@ export class AdvancedBrain {
         return { output, hidden };
     }
 
-    train(inputVector, targetVector, customLR) {
-        const lr = customLR || this.learningRate;
+    resetGradients() {
+        this.gradWeightsIH.fill(0);
+        this.gradWeightsHO.fill(0);
+        this.gradBiasH.fill(0);
+        this.gradBiasO.fill(0);
+    }
+
+    accumulateGradients(inputVector, targetVector) {
         const { output, hidden } = this.predict(inputVector);
         const outputErrors = targetVector.map((target, i) => target - output[i]);
 
@@ -148,33 +169,25 @@ export class AdvancedBrain {
         const clip = 5.0;
 
         for (let i = 0; i < this.vocabSize; i++) {
-            let gradient = outputErrors[i] * lr; // Softmax + CrossEntropy derivative IS exactly (Target - Output)
+            let gradient = outputErrors[i]; // Softmax + CrossEntropy derivative
             // Clip Error Gradient
             gradient = Math.max(-clip, Math.min(clip, gradient));
 
             for (let j = 0; j < this.hiddenNodes; j++) {
-                let delta = gradient * hidden[j];
-                let hoIdx = i * this.hiddenNodes + j;
-                this.vWeightsHO[hoIdx] = this.momentum * this.vWeightsHO[hoIdx] + delta;
-                this.weightsHO[hoIdx] += this.vWeightsHO[hoIdx];
+                this.gradWeightsHO[i * this.hiddenNodes + j] += gradient * hidden[j];
             }
-            this.vBiasO[i] = this.momentum * this.vBiasO[i] + gradient;
-            this.biasO[i] += this.vBiasO[i];
+            this.gradBiasO[i] += gradient;
         }
 
         for (let i = 0; i < this.hiddenNodes; i++) {
-            let gradient = hiddenErrors[i] * this.drelu(hidden[i]) * lr;
+            let gradient = hiddenErrors[i] * this.drelu(hidden[i]);
             // Clip Hidden Gradient
             gradient = Math.max(-clip, Math.min(clip, gradient));
 
             for (let j = 0; j < this.vocabSize; j++) {
-                let delta = gradient * (inputVector[j] || 0);
-                let ihIdx = i * this.vocabSize + j;
-                this.vWeightsIH[ihIdx] = this.momentum * this.vWeightsIH[ihIdx] + delta;
-                this.weightsIH[ihIdx] += this.vWeightsIH[ihIdx];
+                this.gradWeightsIH[i * this.vocabSize + j] += gradient * (inputVector[j] || 0);
             }
-            this.vBiasH[i] = this.momentum * this.vBiasH[i] + gradient;
-            this.biasH[i] += this.vBiasH[i];
+            this.gradBiasH[i] += gradient;
         }
 
         let ceLoss = 0;
@@ -183,7 +196,35 @@ export class AdvancedBrain {
             const o = Math.max(1e-15, Math.min(1 - 1e-15, output[i]));
             ceLoss -= (t * Math.log(o) + (1 - t) * Math.log(1 - o));
         }
-        return ceLoss; // Return sum instead of mean to scale consistently with UI target
+        return ceLoss;
+    }
+
+    applyGradients(batchSize, customLR) {
+        const lr = (customLR || this.learningRate) / batchSize;
+
+        for (let i = 0; i < this.vocabSize; i++) {
+            for (let j = 0; j < this.hiddenNodes; j++) {
+                let hoIdx = i * this.hiddenNodes + j;
+                let delta = this.gradWeightsHO[hoIdx] * lr;
+                this.vWeightsHO[hoIdx] = this.momentum * this.vWeightsHO[hoIdx] + delta;
+                this.weightsHO[hoIdx] += this.vWeightsHO[hoIdx];
+            }
+            this.vBiasO[i] = this.momentum * this.vBiasO[i] + this.gradBiasO[i] * lr;
+            this.biasO[i] += this.vBiasO[i];
+        }
+
+        for (let i = 0; i < this.hiddenNodes; i++) {
+            for (let j = 0; j < this.vocabSize; j++) {
+                let ihIdx = i * this.vocabSize + j;
+                let delta = this.gradWeightsIH[ihIdx] * lr;
+                this.vWeightsIH[ihIdx] = this.momentum * this.vWeightsIH[ihIdx] + delta;
+                this.weightsIH[ihIdx] += this.vWeightsIH[ihIdx];
+            }
+            this.vBiasH[i] = this.momentum * this.vBiasH[i] + this.gradBiasH[i] * lr;
+            this.biasH[i] += this.vBiasH[i];
+        }
+
+        this.resetGradients();
     }
 
     serialize() {
@@ -213,5 +254,51 @@ export class AdvancedBrain {
         this.vWeightsHO = new Float32Array(data.vWeightsHO || new Array(this.vocabSize * this.hiddenNodes).fill(0));
         this.vBiasH = new Float32Array(data.vBiasH || new Array(this.hiddenNodes).fill(0));
         this.vBiasO = new Float32Array(data.vBiasO || new Array(this.vocabSize).fill(0));
+
+        // Re-initialize gradient buffers if deserializing an old save without them
+        const lenIH = this.hiddenNodes * this.vocabSize;
+        const lenHO = this.vocabSize * this.hiddenNodes;
+        this.gradWeightsIH = new Float32Array(lenIH);
+        this.gradWeightsHO = new Float32Array(lenHO);
+        this.gradBiasH = new Float32Array(this.hiddenNodes);
+        this.gradBiasO = new Float32Array(this.vocabSize);
+    }
+
+    getRawState() {
+        return {
+            vocabSize: this.vocabSize,
+            hiddenNodes: this.hiddenNodes,
+            weightsIH: this.weightsIH,
+            weightsHO: this.weightsHO,
+            biasH: this.biasH,
+            biasO: this.biasO,
+            vWeightsIH: this.vWeightsIH,
+            vWeightsHO: this.vWeightsHO,
+            vBiasH: this.vBiasH,
+            vBiasO: this.vBiasO
+        };
+    }
+
+    setRawState(data) {
+        this.vocabSize = data.vocabSize;
+        this.hiddenNodes = data.hiddenNodes;
+        this.weightsIH = data.weightsIH;
+        this.weightsHO = data.weightsHO;
+        this.biasH = data.biasH;
+        this.biasO = data.biasO;
+        this.vWeightsIH = data.vWeightsIH;
+        this.vWeightsHO = data.vWeightsHO;
+        this.vBiasH = data.vBiasH;
+        this.vBiasO = data.vBiasO;
+
+        // Ensure gradient arrays match the incoming size if missing
+        const lenIH = this.hiddenNodes * this.vocabSize;
+        if (!this.gradWeightsIH || this.gradWeightsIH.length !== lenIH) {
+            const lenHO = this.vocabSize * this.hiddenNodes;
+            this.gradWeightsIH = new Float32Array(lenIH);
+            this.gradWeightsHO = new Float32Array(lenHO);
+            this.gradBiasH = new Float32Array(this.hiddenNodes);
+            this.gradBiasO = new Float32Array(this.vocabSize);
+        }
     }
 }

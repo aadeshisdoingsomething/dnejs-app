@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { loadData, saveData } from './storage.js';
 import { DOM, renderCorpus, appendMessage, updateVisualizer } from './ui.js';
-import { toggleTraining } from './training.js';
+import { toggleTraining, syncWorkerData } from './training.js';
 import { encodeSequence, decode, tokenize, updateEncodedCorpus } from './nlp.js';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -76,6 +76,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         state.corpus.push({ q, a });
         updateEncodedCorpus();
+        syncWorkerData();
         renderCorpus();
         saveData();
 
@@ -109,6 +110,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             state.corpus.push(...validPairs);
             updateEncodedCorpus();
+            syncWorkerData();
             renderCorpus();
             saveData();
 
@@ -135,9 +137,15 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     DOM.btnNukeData.addEventListener('click', () => {
-        if (confirm("Are you sure you want to NUKE the core data? This will clear all training, words, and matrices, and cannot be undone.")) {
-            localStorage.removeItem('neuralEngineData');
-            window.location.reload();
-        }
+        DOM.nukeOverlay.classList.remove('hidden');
+    });
+
+    DOM.btnNukeCancel.addEventListener('click', () => {
+        DOM.nukeOverlay.classList.add('hidden');
+    });
+
+    DOM.btnNukeConfirm.addEventListener('click', () => {
+        localStorage.removeItem('neuralEngineData');
+        window.location.reload();
     });
 });

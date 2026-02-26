@@ -12,7 +12,7 @@ const pairs = state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
 - Cache the encoded pairs in `state.js` whenever a new item is added to the corpus.
 - Modify `trainBatch` to use the pre-encoded cached pairs instead of mapping the corpus continuously. This will drastically reduce CPU load and speed up iterations.
 
-## 2. Implement True Mini-Batch Gradient Descent
+## 2. [x] Implement True Mini-Batch Gradient Descent
 **Current Issue:** The `trainBatch` loops 100 times and calls `state.brain.train()` for each random sample. Inside `train()`, the weights are updated immediately. This is actually Stochastic Gradient Descent (SGD) run 100 times, which is noisy and computationally expensive due to constant array mutations.
 **Action:**
 - Modify the `train` method in `js/model.js` to separate gradient calculation from weight updating.
@@ -34,7 +34,7 @@ const pairs = state.corpus.map(c => ({ in: encode(c.q), out: encode(c.a) }));
 - **Output Layer:** If shifting to predicting one word at a time, change the output activation to `Softmax` to generate a true probability distribution across the vocabulary.
 - **Loss Calculation:** Implement Cross-Entropy Loss instead of the current Mean Absolute Error approximation. Cross-Entropy heavily penalizes the model for being confidently wrong, which is standard for classification/NLP.
 
-## 5. Offload Computation to Web Workers
+## 5. [x] Offload Computation to Web Workers
 **Current Issue:** Matrix multiplication is happening on the main browser thread via nested `for` loops. While `setTimeout` prevents complete freezing, the UI will still stutter during heavy training.
 **Action:**
 - Move `model.js` and `training.js` execution into a standard JavaScript Web Worker. 
@@ -66,3 +66,14 @@ Implementation: In main.js, when performing the generation loop, instead of pass
 
 Benefit: This mimics how humans focus on the immediate phrase structure. It keeps the input vector size constant while ensuring the model stays "on track" with the most recent grammatical context.
 
+Deepening the Brain (Task #9)
+
+The Goal: Add a second hidden layer.
+
+Why: Your current architecture is Input -> Hidden -> Output. This is a "shallow" network. Adding one more layer (Hidden1 -> Hidden2) allows the model to learn hierarchical features.
+
+Layer 1 learns "What words go together."
+
+Layer 2 learns "What do these words mean together."
+
+Difficulty: High (7/10). You have to pass the error backwards through two sets of weights. But since you have Mini-Batching and Typed Arrays done, the math will stay stable.
