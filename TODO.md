@@ -56,17 +56,17 @@ Implementation: When calling predict(), don't just send the one-hot encoded word
 
 Architectural Change: Increase this.vocabSize by 1 in the constructor to account for this "Position Node." This gives the weightsIH a specific "temporal" weight to learn from, allowing the model to distinguish between "Is math..." and "...math is."
 
-8. Implement a Sliding Context Window
+8. [x] Implement a Sliding Context Window
 Current Issue: As the AI generates longer sentences, the "noise" from the beginning of the sentence can confuse the next-word prediction, leading to infinite loops or "humans humans" spam.
 Action:
 
 The Concept: Limit the "Memory" of the model during inference.
 
-Implementation: In main.js, when performing the generation loop, instead of passing the entire currentContext to the encoder, only pass the last N tokens (e.g., currentContext.slice(-3)).
+Implementation: In main.js, when performing the generation loop, instead of passing the entire currentContext to the encoder, only pass the last N tokens (e.g., currentContext.slice(-3) or currentContext.slice(-4) or someother value).
 
 Benefit: This mimics how humans focus on the immediate phrase structure. It keeps the input vector size constant while ensuring the model stays "on track" with the most recent grammatical context.
 
-Deepening the Brain (Task #9)
+9. Deepening the Brain
 
 The Goal: Add a second hidden layer.
 

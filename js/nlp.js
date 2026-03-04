@@ -40,8 +40,10 @@ export function updateEncodedCorpus() {
             const targetIdx = state.vocab.indexOf(targetWord);
             if (targetIdx !== -1) targetVec[targetIdx] = 1;
 
+            const contextSlice = currentContext.slice(-state.contextWindowSize);
+
             state.encodedCorpus.push({
-                in: encodeSequence(currentContext),
+                in: encodeSequence(contextSlice),
                 out: targetVec
             });
 
@@ -52,8 +54,9 @@ export function updateEncodedCorpus() {
         // Finally, teach the model to predictably output <EOS> token when finished
         const eosVec = new Array(state.vocab.length).fill(0);
         eosVec[state.vocab.indexOf('<EOS>')] = 1;
+        const finalContextSlice = currentContext.slice(-state.contextWindowSize);
         state.encodedCorpus.push({
-            in: encodeSequence(currentContext),
+            in: encodeSequence(finalContextSlice),
             out: eosVec
         });
     });

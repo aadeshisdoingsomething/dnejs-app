@@ -29,7 +29,8 @@ window.addEventListener('DOMContentLoaded', () => {
         let maxTokens = 20; // Hard limit to prevent infinite loops on untrained models
 
         for (let i = 0; i < maxTokens; i++) {
-            const vec = encodeSequence(currentContext);
+            const contextSlice = currentContext.slice(-state.contextWindowSize);
+            const vec = encodeSequence(contextSlice);
             const pred = state.brain.predict(vec);
             const word = decode(pred.output);
 

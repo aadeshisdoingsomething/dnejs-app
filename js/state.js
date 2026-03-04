@@ -1,6 +1,7 @@
 import { AdvancedBrain } from './model.js';
 
 export const state = {
+    contextWindowSize: 5,
     vocab: [
         "<PAD>", "<EOS>", "hi", "hello", "i", "am", "robot", "ai", "bot",
         "good", "bad", "yes", "no", "what", "is", "your", "name",
