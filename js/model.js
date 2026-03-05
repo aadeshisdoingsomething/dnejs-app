@@ -1,31 +1,43 @@
 import * as tf from 'https://esm.sh/@tensorflow/tfjs@4.22.0';
 
 export class AdvancedBrain {
-    constructor(vocabSize, hiddenNodes) {
+    constructor(vocabSize, hiddenNodes, contextWindowSize = 15) {
         this.vocabSize = vocabSize;
         this.hiddenNodes = hiddenNodes;
-        this.learningRate = 0.5; // Bumped slightly for TFJS SGD
-        this.momentum = 0.9;
+        this.contextWindowSize = contextWindowSize; // Critical for fixed-length Dense Embeddings
+        // Switch to Adam targets to prevent Overshooting divergence
+        this.learningRate = 0.01;
         this.initModel();
     }
 
     initModel() {
         this.model = tf.sequential();
 
-        // Input: vocabSize -> Hidden 1: hiddenNodes (ReLU)
+        // Embedding Layer: vocabSize -> 16-Dimensional Semantic Space
+        // Takes flat integer arrays (e.g. [14, 25, 3]) and mathematically clusters words
+        this.model.add(tf.layers.embedding({
+            inputDim: this.vocabSize,
+            outputDim: 16,
+            inputLength: this.contextWindowSize || 15
+        }));
+
+        // Flatten the 2D Semantic Matrix back to 1D for Dense Layers
+        // If inputLength isn't explicitly defined, Flatten crashes.
+        this.model.add(tf.layers.flatten());
+
+        // Flatten -> Hidden 1: hiddenNodes (Tanh)
         this.model.add(tf.layers.dense({
             units: this.hiddenNodes,
-            inputShape: [this.vocabSize],
-            activation: 'relu',
-            kernelInitializer: 'heNormal',
+            activation: 'tanh',
+            kernelInitializer: 'glorotNormal',
             useBias: true
         }));
 
-        // Hidden 1: hiddenNodes -> Hidden 2: hiddenNodes (ReLU)
+        // Hidden 1: hiddenNodes -> Hidden 2: hiddenNodes (Tanh)
         this.model.add(tf.layers.dense({
             units: this.hiddenNodes,
-            activation: 'relu',
-            kernelInitializer: 'heNormal',
+            activation: 'tanh',
+            kernelInitializer: 'glorotNormal',
             useBias: true
         }));
 
@@ -38,7 +50,7 @@ export class AdvancedBrain {
         }));
 
         this.model.compile({
-            optimizer: tf.train.momentum(this.learningRate, this.momentum),
+            optimizer: tf.train.adam(this.learningRate),
             loss: 'categoricalCrossentropy'
         });
     }
@@ -47,25 +59,31 @@ export class AdvancedBrain {
         if (newSize <= this.vocabSize) return;
 
         const oldWeights = this.model.getWeights();
-        // Index 0: IH Kernel [oldVocabSize, hiddenNodes]
-        // Index 1: IH Bias   [hiddenNodes]
-        // Index 2: H1H2 Kernel [hiddenNodes, hiddenNodes]
-        // Index 3: H1H2 Bias   [hiddenNodes]
-        // Index 4: HO Kernel [hiddenNodes, oldVocabSize]
-        // Index 5: HO Bias   [oldVocabSize]
+        // Index 0: Embedding Matrix [oldVocabSize, 16]
+        // Index 1: Flatten->H1 Kernel [(16 * contextWindowSize), hiddenNodes]
+        // Index 2: Flatten->H1 Bias   [hiddenNodes]
+        // Index 3: H1->H2 Kernel [hiddenNodes, hiddenNodes]
+        // Index 4: H1->H2 Bias   [hiddenNodes]
+        // Index 5: H2->Output Kernel [hiddenNodes, oldVocabSize]
+        // Index 6: H2->Output Bias   [oldVocabSize]
 
         const newModel = tf.sequential();
+        newModel.add(tf.layers.embedding({
+            inputDim: newSize,
+            outputDim: 16,
+            inputLength: this.contextWindowSize || 15
+        }));
+        newModel.add(tf.layers.flatten());
         newModel.add(tf.layers.dense({
             units: this.hiddenNodes,
-            inputShape: [newSize],
-            activation: 'relu',
-            kernelInitializer: 'heNormal',
+            activation: 'tanh',
+            kernelInitializer: 'glorotNormal',
             useBias: true
         }));
         newModel.add(tf.layers.dense({
             units: this.hiddenNodes,
-            activation: 'relu',
-            kernelInitializer: 'heNormal',
+            activation: 'tanh',
+            kernelInitializer: 'glorotNormal',
             useBias: true
         }));
         newModel.add(tf.layers.dense({
@@ -76,31 +94,36 @@ export class AdvancedBrain {
         }));
 
         newModel.compile({
-            optimizer: tf.train.momentum(this.learningRate, this.momentum),
+            optimizer: tf.train.adam(this.learningRate),
             loss: 'categoricalCrossentropy'
         });
 
         tf.tidy(() => {
-            // IH Kernel Pad
-            const ihKernelPad = tf.randomNormal([newSize - this.vocabSize, this.hiddenNodes], 0, Math.sqrt(2 / newSize));
-            const newIhKernel = tf.concat([oldWeights[0], ihKernelPad], 0);
+            // Expansion Pads
+            const paddingRows = newSize - this.vocabSize;
 
-            // IH Bias is unchanged in shape
-            const newIhBias = oldWeights[1].clone();
+            // 1. Embedding Kernel Pad
+            // Pad the vocabulary but keep the output dimension strictly at 16
+            const embeddingPad = tf.randomNormal([paddingRows, 16], 0, Math.sqrt(2 / newSize));
+            const newEmbeddingMatrix = tf.concat([oldWeights[0], embeddingPad], 0);
 
-            // H1H2 Kernel & Bias are completely untouched
-            const newH1H2Kernel = oldWeights[2].clone();
-            const newH1H2Bias = oldWeights[3].clone();
+            // 2. Flatten -> H1 Kernel (Unchanged - geometry is bound to 16 * contextWindowSize)
+            const newFlattenH1Kernel = oldWeights[1].clone();
+            const newFlattenH1Bias = oldWeights[2].clone();
 
-            // HO Kernel Pad (Now Index 4)
-            const hoKernelPad = tf.randomNormal([this.hiddenNodes, newSize - this.vocabSize], 0, Math.sqrt(1 / this.hiddenNodes));
-            const newHoKernel = tf.concat([oldWeights[4], hoKernelPad], 1);
+            // 3. H1 -> H2 Kernel & Bias (Untouched)
+            const newH1H2Kernel = oldWeights[3].clone();
+            const newH1H2Bias = oldWeights[4].clone();
 
-            // HO Bias Pad (Now Index 5)
-            const hoBiasPad = tf.zeros([newSize - this.vocabSize]);
-            const newHoBias = tf.concat([oldWeights[5], hoBiasPad], 0);
+            // 4. H2 -> Output Kernel Pad
+            const hoKernelPad = tf.randomNormal([this.hiddenNodes, paddingRows], 0, Math.sqrt(1 / this.hiddenNodes));
+            const newHoKernel = tf.concat([oldWeights[5], hoKernelPad], 1);
 
-            newModel.setWeights([newIhKernel, newIhBias, newH1H2Kernel, newH1H2Bias, newHoKernel, newHoBias]);
+            // 5. H2 -> Output Bias Pad
+            const hoBiasPad = tf.zeros([paddingRows]);
+            const newHoBias = tf.concat([oldWeights[6], hoBiasPad], 0);
+
+            newModel.setWeights([newEmbeddingMatrix, newFlattenH1Kernel, newFlattenH1Bias, newH1H2Kernel, newH1H2Bias, newHoKernel, newHoBias]);
         });
 
         this.model.dispose(); // Releases old tensors
@@ -110,7 +133,9 @@ export class AdvancedBrain {
 
     predict(inputVector) {
         return tf.tidy(() => {
-            const inputTensor = tf.tensor2d([inputVector], [1, this.vocabSize]);
+            // Embeddings take flat integer sequences instead of One-Hot arrays
+            // inputVector = [14, 25, 3] instead of [0, 0, 1.4, 0, 0]
+            const inputTensor = tf.tensor2d([inputVector], [1, this.contextWindowSize]);
             const pred = this.model.predict(inputTensor);
             const outputArray = Array.from(pred.dataSync());
             return { output: outputArray, hidden: [] };
@@ -129,7 +154,7 @@ export class AdvancedBrain {
             yArray.push(sample.out);
         }
 
-        const xs = tf.tensor2d(xArray, [batchSize, this.vocabSize]);
+        const xs = tf.tensor2d(xArray, [batchSize, this.contextWindowSize]);
         const ys = tf.tensor2d(yArray, [batchSize, this.vocabSize]);
 
         const loss = await this.model.trainOnBatch(xs, ys);

@@ -15,12 +15,16 @@ self.onmessage = function (e) {
 
     switch (type) {
         case 'INIT':
-            // Instantiate brain and restore live weights
-            brain = new AdvancedBrain(payload.vocabSize, payload.hiddenNodes);
-            brain.setRawState(payload.rawState);
-            encodedCorpus = payload.encodedCorpus;
-            targetLoss = payload.targetLoss;
-            iterations = payload.iterations || 0;
+            try {
+                // Instantiate brain and restore live weights
+                brain = new AdvancedBrain(payload.vocabSize, payload.hiddenNodes, payload.contextWindowSize);
+                brain.setRawState(payload.rawState);
+                encodedCorpus = payload.encodedCorpus;
+                targetLoss = payload.targetLoss;
+                iterations = payload.iterations || 0;
+            } catch (e) {
+                self.postMessage({ type: 'ERROR', payload: e.message });
+            }
             break;
 
         case 'START':

@@ -1,9 +1,10 @@
 import { AdvancedBrain } from './model.js';
 
 export const state = {
-    contextWindowSize: 5,
+    // Expanded from 5 to 15 to mathematically prevent Sequence Amnesia while autoregressive loops predict sentences
+    contextWindowSize: 15,
     vocab: [
-        "<PAD>", "<EOS>", "hi", "hello", "i", "am", "robot", "ai", "bot",
+        "<PAD>", "<EOS>", "<SOS>", "hi", "hello", "i", "am", "robot", "ai", "bot",
         "good", "bad", "yes", "no", "what", "is", "your", "name",
     ],
     corpus: [

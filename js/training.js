@@ -27,6 +27,13 @@ function initWorker() {
         } else if (type === 'DONE') {
             toggleTraining(true);
             saveData();
+        } else if (type === 'ERROR') {
+            state.isTraining = false;
+            DOM.trainText.innerText = `FATAL ERROR: ${payload}`;
+            DOM.trainIcon.setAttribute('data-lucide', 'alert-triangle');
+            DOM.trainIcon.classList.remove('animate-spin', 'animate-pulse');
+            DOM.btnTrain.className = "w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all bg-red-600 text-white";
+            console.error("Worker Thread Crash:", payload);
         }
     };
 }
@@ -67,6 +74,7 @@ export function toggleTraining(forceStop = false) {
             payload: {
                 vocabSize: state.vocab.length,
                 hiddenNodes: state.brain.hiddenNodes,
+                contextWindowSize: state.contextWindowSize, // Inject Embedding Layer Shape Constraints
                 rawState: state.brain.getRawState(),
                 encodedCorpus: state.encodedCorpus && state.encodedCorpus.length > 0
                     ? state.encodedCorpus

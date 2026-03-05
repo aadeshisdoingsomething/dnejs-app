@@ -9,19 +9,27 @@ export function encode(text) {
 }
 
 export function encodeSequence(wordsArray) {
-    const vec = new Array(state.vocab.length).fill(0);
-    const maxLen = Math.max(wordsArray.length, 1);
-
-    // Temporal Fraction Positional Encoding
-    wordsArray.forEach((w, i) => {
-        const idx = state.vocab.indexOf(w);
-        if (idx !== -1) {
-            // Base context is 1.0. Position adds a temporal fraction (e.g., 0.0 to 1.0)
-            const temporalFraction = i / maxLen;
-            vec[idx] += (1.0 + temporalFraction);
-        }
+    // 1. Convert sequence of words to integer indexes from vocab
+    let sequenceIndices = wordsArray.map(word => {
+        let idx = state.vocab.indexOf(word);
+        // If word is unknown, fallback to index 0 (<PAD>)
+        return idx !== -1 ? idx : 0;
     });
-    return vec;
+
+    // 2. The Embedding Layer in model.js demands a strict, fixed-length array (contextWindowSize)
+    let paddedSequence = new Array(state.contextWindowSize).fill(0); // Fill with <PAD> index 0
+
+    // 3. Right-align the words into the fixed window so the model reads normally left-to-right
+    // E.g. [PAD, PAD, PAD, "how", "are", "you"]
+    let startIdx = state.contextWindowSize - sequenceIndices.length;
+    for (let i = 0; i < sequenceIndices.length; i++) {
+        if (startIdx + i >= 0) {
+            paddedSequence[startIdx + i] = sequenceIndices[i];
+        }
+    }
+
+    // Return the pure integer array. The Embedding layer natively handles semantic geometry.
+    return paddedSequence;
 }
 
 export function updateEncodedCorpus() {
@@ -30,10 +38,13 @@ export function updateEncodedCorpus() {
         const qWords = tokenize(c.q);
         const aWords = tokenize(c.a);
 
-        // Base context starts with just the question
-        let currentContext = [...qWords];
+        // Sequence Builder: [Question] -> <SOS> -> [Answer] -> <EOS>
+        // Start context with the Question, plus the Start-Of-Sequence trigger token
+        let currentContext = [...qWords, "<SOS>"];
 
-        // For each answer word, predict it based on current context
+        // The very first word the model must predict is the FIRST word of the answer, 
+        // based on the context of the question + <SOS>.
+        // Then it Auto-Regressively slides through predicting each subsequent answer word.
         for (let i = 0; i < aWords.length; i++) {
             const targetWord = aWords[i];
             const targetVec = new Array(state.vocab.length).fill(0);

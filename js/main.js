@@ -4,9 +4,9 @@ import { DOM, renderCorpus, appendMessage, updateVisualizer } from './ui.js';
 import { toggleTraining, syncWorkerData } from './training.js';
 import { encodeSequence, decode, tokenize, updateEncodedCorpus } from './nlp.js';
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     if (window.lucide) window.lucide.createIcons();
-    loadData();
+    await loadData();
     updateEncodedCorpus();
 
     window.handleFeedback = function (index, positive) {
@@ -25,13 +25,18 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // Auto-Regressive Inference Loop
         let currentContext = tokenize(text);
+
+        // Push the Start-Of-Sequence Token to mathematically delimit the prompt
+        // This stops "Prefix Collisions", like when Q and A both start with "good morning"
+        currentContext.push('<SOS>');
+
         let generatedWords = [];
         let maxTokens = 20; // Hard limit to prevent infinite loops on untrained models
 
         for (let i = 0; i < maxTokens; i++) {
-            const contextSlice = currentContext.slice(-state.contextWindowSize);
-            const vec = encodeSequence(contextSlice);
-            const pred = state.brain.predict(vec);
+            // Embeddings require a 15-integer sequence array exactly
+            const sequenceInts = encodeSequence(currentContext);
+            const pred = state.brain.predict(sequenceInts);
             const word = decode(pred.output);
 
             if (word === "<EOS>") break;
@@ -146,7 +151,14 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     DOM.btnNukeConfirm.addEventListener('click', () => {
-        localStorage.removeItem('neuralEngineData');
-        window.location.reload();
+        const req = indexedDB.deleteDatabase('NeuralEngineDB');
+        req.onsuccess = () => {
+            localStorage.removeItem('neuralEngineData'); // Purge legacy if it exists
+            window.location.reload();
+        };
+        req.onerror = () => {
+            console.error("Failed to delete database");
+            window.location.reload();
+        };
     });
 });
