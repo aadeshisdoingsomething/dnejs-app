@@ -76,4 +76,14 @@ Layer 1 learns "What words go together."
 
 Layer 2 learns "What do these words mean together."
 
-Difficulty: High (7/10). You have to pass the error backwards through two sets of weights. But since you have Mini-Batching and Typed Arrays done, the math will stay stable.
+Difficulty: High (7/10). You have to pass the error backwards through two sets of weights. But since you have Mini-Batching and Typed Arrays done, the math will stay stable. *(Note: Since migrating to TensorFlow.js, this is actually a 1/10 difficulty!)*
+
+## 10. Implement Learning Rate Decay
+**The Concept:** Gradually reduce the learning rate as the model gets closer to its target loss.
+**Why:** A high learning rate learns fast but can "bounce" around the optimal solution. Shrinking the learning rate over time ensures the model settles into the absolute lowest possible loss curve smoothly.
+**Difficulty:** Low (2/10). Very easy to add to the training loop.
+
+## 11. Add an Attention Mechanism (Self-Attention)
+**The Concept:** Allow the model to learn which contextual words are most important when predicting the next word.
+**Why:** Modern AI (Transformers) use attention so they don't treat all words in a sentence equally. If the phrase is "The big red dog barked," the word "dog" is much more important for predicting "barked" than the word "The".
+**Difficulty:** Very High (9/10). Requires restructuring the tensor shapes and implementing attention math.

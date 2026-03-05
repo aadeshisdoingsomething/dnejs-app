@@ -3,7 +3,7 @@
 This document provides architectural overview, development conventions, and technical context for the Dynamic Neural Engine project.
 
 ## Project Overview
-The **Dynamic Neural Engine** is a pure JavaScript implementation of a feed-forward neural network designed for browser-based Natural Language Processing (NLP). It operates entirely client-side without external dependencies or heavy frameworks, using a custom-built "brain" that learns patterns between user queries and AI responses in real-time.
+The **Dynamic Neural Engine** is a  JavaScript implementation of a feed-forward neural network designed for browser-based Natural Language Processing (NLP). It operates entirely client-side without external dependencies or heavy frameworks, using a custom-built "brain" that learns patterns between user queries and AI responses in real-time.
 
 ### Key Technologies
 - **Frontend**: HTML5, Tailwind CSS (via CDN), Lucide Icons.

@@ -19,6 +19,9 @@ function initWorker() {
             state.iterations = payload.iterations;
             state.brain.setRawState(payload.rawState); // Kept in sync for UI/Visualizer
 
+            DOM.trainIcon.setAttribute('data-lucide', 'activity');
+            DOM.trainIcon.classList.remove('animate-spin');
+            DOM.trainIcon.classList.add('animate-pulse');
             DOM.uiLoss.innerText = state.currentLoss.toFixed(5);
             DOM.trainText.innerText = `TRAINING (${state.iterations})`;
         } else if (type === 'DONE') {
@@ -52,6 +55,7 @@ export function toggleTraining(forceStop = false) {
 
         DOM.btnTrain.className = "w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all bg-indigo-600 text-white hover:bg-indigo-500";
         DOM.trainIcon.setAttribute('data-lucide', 'play');
+        DOM.trainIcon.classList.remove('animate-spin', 'animate-pulse');
         DOM.trainText.innerText = 'TRAIN UNTIL TARGET';
     } else {
         state.isTraining = true;
@@ -75,8 +79,9 @@ export function toggleTraining(forceStop = false) {
         trainingWorker.postMessage({ type: 'START' });
 
         DOM.btnTrain.className = "w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all bg-rose-500/20 text-rose-500 border border-rose-500/30";
-        DOM.trainIcon.setAttribute('data-lucide', 'activity');
-        DOM.trainIcon.classList.add('animate-pulse');
+        DOM.trainIcon.setAttribute('data-lucide', 'loader');
+        DOM.trainIcon.classList.add('animate-spin');
+        DOM.trainText.innerText = 'LOADING GPU...';
     }
     if (window.lucide) window.lucide.createIcons();
 }

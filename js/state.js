@@ -19,4 +19,4 @@ export const state = {
 };
 
 // Initialize the brain
-state.brain = new AdvancedBrain(state.vocab.length, 32);
+state.brain = new AdvancedBrain(state.vocab.length, 128);

@@ -70,15 +70,30 @@ export function appendMessage(role, text, msgIndex) {
 }
 
 export function updateVisualizer() {
+  const rawState = state.brain.getRawState();
   let html = `
         <div class="space-y-2">
           <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border pb-2">Input → Hidden Weights (IH)</h3>
           <p class="text-[10px] text-muted-foreground mb-4">Rows: Hidden (${state.brain.hiddenNodes}) | Cols: Vocab (${state.brain.vocabSize})</p>
-          <div class="flex flex-col gap-1">
-            ${state.brain.weightsIH.map((row, i) => `
-              <div class="flex gap-1">
+          <div class="flex flex-col gap-1 overflow-x-auto pb-2 custom-scrollbar">
+            ${rawState.weightsIH.map((row, i) => `
+              <div class="flex gap-1 w-max">
                 ${row.map((val, j) => `
-                  <div class="w-4 h-4 rounded-[2px]" style="background-color: ${val > 0 ? `oklch(0.55 0.25 300 / ${Math.min(Math.abs(val) * 2, 1)})` : `oklch(0.4 0.15 25 / ${Math.min(Math.abs(val) * 2, 1)})`}" title="Node ${i} -> Vocab[${state.vocab[j]}]: ${val.toFixed(3)}"></div>
+                  <div class="shrink-0 w-3 h-3 rounded-[2px]" style="background-color: ${val > 0 ? `oklch(0.55 0.25 300 / ${Math.min(Math.abs(val) * 2, 1)})` : `oklch(0.4 0.15 25 / ${Math.min(Math.abs(val) * 2, 1)})`}" title="Node ${i} -> Vocab[${state.vocab[j]}]: ${val.toFixed(3)}"></div>
+                `).join('')}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border pb-2">Hidden 1 → Hidden 2 Weights (H1H2)</h3>
+          <p class="text-[10px] text-muted-foreground mb-4">Rows: H2 (${state.brain.hiddenNodes}) | Cols: H1 (${state.brain.hiddenNodes})</p>
+          <div class="flex flex-col gap-1 overflow-x-auto pb-2 custom-scrollbar">
+            ${rawState.weightsH1H2.map((row, i) => `
+              <div class="flex gap-1 w-max">
+                ${row.map((val, j) => `
+                  <div class="shrink-0 w-3 h-3 rounded-[2px]" style="background-color: ${val > 0 ? `oklch(0.55 0.25 300 / ${Math.min(Math.abs(val) * 2, 1)})` : `oklch(0.4 0.15 25 / ${Math.min(Math.abs(val) * 2, 1)})`}" title="H1 Node ${j} -> H2 Node ${i}: ${val.toFixed(3)}"></div>
                 `).join('')}
               </div>
             `).join('')}
@@ -88,12 +103,12 @@ export function updateVisualizer() {
         <div class="space-y-2">
           <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border pb-2">Hidden → Output Weights (HO)</h3>
           <p class="text-[10px] text-muted-foreground mb-4">Rows: Vocab (${state.brain.vocabSize}) | Cols: Hidden (${state.brain.hiddenNodes})</p>
-          <div class="flex flex-col gap-1">
-            ${state.brain.weightsHO.map((row, i) => `
-              <div class="flex gap-1 items-center">
-                <span class="text-[9px] w-12 truncate text-right text-muted-foreground mr-2">${state.vocab[i]}</span>
+          <div class="flex flex-col gap-1 overflow-x-auto pb-2 custom-scrollbar">
+            ${rawState.weightsHO.map((row, i) => `
+              <div class="flex gap-1 items-center w-max">
+                <span class="shrink-0 text-[9px] w-12 truncate text-right text-muted-foreground mr-2">${state.vocab[i]}</span>
                 ${row.map((val, j) => `
-                  <div class="w-4 h-4 rounded-[2px]" style="background-color: ${val > 0 ? `oklch(0.6 0.15 150 / ${Math.min(Math.abs(val) * 2, 1)})` : `oklch(0.8 0.15 80 / ${Math.min(Math.abs(val) * 2, 1)})`}" title="Vocab[${state.vocab[i]}] <- Node ${j}: ${val.toFixed(3)}"></div>
+                  <div class="shrink-0 w-3 h-3 rounded-[2px]" style="background-color: ${val > 0 ? `oklch(0.6 0.15 150 / ${Math.min(Math.abs(val) * 2, 1)})` : `oklch(0.8 0.15 80 / ${Math.min(Math.abs(val) * 2, 1)})`}" title="Vocab[${state.vocab[i]}] <- Node ${j}: ${val.toFixed(3)}"></div>
                 `).join('')}
               </div>
             `).join('')}

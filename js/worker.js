@@ -49,21 +49,18 @@ self.onmessage = function (e) {
     }
 };
 
-function trainLoop() {
+async function trainLoop() {
     if (!isTraining || !brain || encodedCorpus.length === 0) return;
 
-    let totalError = 0;
     const batchSize = 100;
 
-    brain.resetGradients();
-    for (let k = 0; k < batchSize; k++) {
-        const sample = encodedCorpus[Math.floor(Math.random() * encodedCorpus.length)];
-        totalError += brain.accumulateGradients(sample.in, sample.out);
-    }
-    brain.applyGradients(batchSize);
-
-    currentLoss = totalError / batchSize;
+    // trainBatch now handles array sampling, tensor creation, and fitting
+    currentLoss = await brain.trainBatch(encodedCorpus, batchSize);
     iterations += batchSize;
+
+    if (iterations % 1000 === 0) { // Every 10 loops of 100 batch size
+        brain.decayLearningRate();
+    }
 
     // Send progress back to main thread
     self.postMessage({
@@ -79,7 +76,7 @@ function trainLoop() {
         isTraining = false;
         self.postMessage({ type: 'DONE' });
     } else {
-        // Prevent complete freezing of the worker thread
-        trainingTimeout = setTimeout(trainLoop, 0);
+        // Yield to allow message processing, then loop
+        trainingTimeout = setTimeout(trainLoop, 10);
     }
 }
